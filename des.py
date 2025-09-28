@@ -140,51 +140,7 @@ def permute(block: int, table: list[int], block_size: int) -> int:
     return result
 
 
-def f(block: int, key: int) -> int:
-    block_ex = permute(block, E, 32)
-    print(f"E(Rn): {phex(block_ex, 12)} ({pbin(block_ex, 48)})")
-
-    xorred = (block_ex ^ key) & 0xFFFFFFFFFFFF
-    print(f"E(Rn) ^ Kn: {phex(xorred, 12)} ({pbin(xorred, 48)})")
-
-    result = 0
-    for n in range(8):
-        b = (xorred >> ((8 - n - 1) * 6)) & 0b111111
-        print(f"B{n + 1}: {pbin(b, 6)}")
-        row = (((b >> 5) & 1) << 1) | (b & 1)
-        col = (b >> 1) & 0b1111
-
-        s_num = SBOX[n][row][col]
-        print(f"S{n + 1}: {pbin(s_num, 4)}")
-
-        result <<= 4
-        result |= s_num
-
-    print(f"S...: {phex(result, 8)} ({pbin(result, 32)})")
-
-    return permute(result, SBOX_P, 32) & 0xFFFFFFFF
-
-
-def main() -> None:
-    key = 0x133457799BBCDFF1
-    data = 0x0123456789ABCDEF
-
-    print(f"initial data: {phex(data)} ({pbin(data)})")
-
-    permuted = permute(data, IP, 64)
-    assert permuted == 0xcc00ccfff0aaf0aa, permuted
-    print(f"after data ip: {phex(permuted)} ({pbin(permuted)})")
-
-    print()
-
-    l0 = permuted >> 32 & 0xFFFFFFFF
-    r0 = permuted & 0xFFFFFFFF
-
-    print(f"L0: {phex(l0, 8)} ({pbin(l0, 32)})")
-    print(f"R0: {phex(r0, 8)} ({pbin(r0, 32)})")
-
-    print()
-
+def kdf(key: int) -> list[int]:
     print(f"initial key: {phex(key)} ({pbin(key)})")
 
     permuted_key = permute(key, PC_1, 64) & 0xFFFFFFFFFFFFFF
@@ -232,24 +188,96 @@ def main() -> None:
 
         print()
 
-    ll = l0
-    lr = r0
+    return keys
+
+
+def f(block: int, key: int) -> int:
+    block_ex = permute(block, E, 32)
+    print(f"E(Rn): {phex(block_ex, 12)} ({pbin(block_ex, 48)})")
+
+    xorred = (block_ex ^ key) & 0xFFFFFFFFFFFF
+    print(f"E(Rn) ^ Kn: {phex(xorred, 12)} ({pbin(xorred, 48)})")
+
+    result = 0
+    for n in range(8):
+        b = (xorred >> ((8 - n - 1) * 6)) & 0b111111
+        print(f"B{n + 1}: {pbin(b, 6)}")
+        row = (((b >> 5) & 1) << 1) | (b & 1)
+        col = (b >> 1) & 0b1111
+
+        s_num = SBOX[n][row][col]
+        print(f"S{n + 1}: {pbin(s_num, 4)}")
+
+        result <<= 4
+        result |= s_num
+
+    print(f"S...: {phex(result, 8)} ({pbin(result, 32)})")
+    print()
+
+    return permute(result, SBOX_P, 32) & 0xFFFFFFFF
+
+
+def one_round(last_l: int, last_r: int, key: int) -> tuple[int, int]:
+    return last_r, last_l ^ f(last_r, key)
+
+
+def sixteen_rounds(l0: int, r0: int, keys: list[int]) -> int:
+    last_l = l0
+    last_r = r0
 
     for n in range(16):
-        ln = lr
-        f_result = f(lr, keys[n])
-        print(f"f() for n={n + 1}: {phex(f_result, 8)} ({pbin(f_result, 32)})")
-        rn = ll ^ f_result
+        last_l, last_r = one_round(last_l, last_r, keys[n])
 
-        ll = ln
-        lr = rn
+    return (last_r << 32) | last_l
 
-        print()
 
-    rl = (lr << 32) | ll
+def process_block(block: int, key: int, decrypt: bool) -> int:
+    print(f"initial data: {phex(block)} ({pbin(block)})")
+
+    permuted = permute(block, IP, 64)
+    print(f"after data ip: {phex(permuted)} ({pbin(permuted)})")
+
+    print()
+
+    l0 = permuted >> 32 & 0xFFFFFFFF
+    r0 = permuted & 0xFFFFFFFF
+
+    print(f"L0: {phex(l0, 8)} ({pbin(l0, 32)})")
+    print(f"R0: {phex(r0, 8)} ({pbin(r0, 32)})")
+
+    print()
+
+    keys = kdf(key)
+    if decrypt:
+        keys.reverse()
+
+    rl = sixteen_rounds(l0, r0, keys)
 
     final = permute(rl, FP, 64)
     print(f"final: {phex(final)} ({pbin(final)})")
+
+    return final
+
+
+def encrypt_block(data: int, key: int) -> int:
+    return process_block(data, key, False)
+
+
+def decrypt_block(data: int, key: int) -> int:
+    return process_block(data, key, True)
+
+
+def main() -> None:
+    key = 0x133457799BBCDFF1
+    data = 0x0123456789ABCDEF
+
+    encrypted = encrypt_block(data, key)
+    print(f"encrypted: {phex(encrypted)} ({pbin(encrypted)})")
+    print()
+
+    decrypted = decrypt_block(encrypted, key)
+    print(f"decrypted: {phex(decrypted)} ({pbin(decrypted)})")
+    print()
 
 
 
