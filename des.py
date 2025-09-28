@@ -1,5 +1,7 @@
 # https://page.math.tu-berlin.de/~kant/teaching/hess/krypto-ws2006/des.htm
 
+VERBOSE = False
+
 IP = [
     58, 50, 42, 34, 26, 18, 10, 2,
     60, 52, 44, 36, 28, 20, 12, 4,
@@ -122,6 +124,10 @@ CD_SHIFTS = [
     1, 1, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 1,
 ]
 
+def log(s: str | None = None) -> None:
+    if VERBOSE:
+        print(s)
+
 def pbin(num: int, pad: int = 64) -> str:
     return bin(num)[2:].zfill(pad)
 
@@ -141,20 +147,20 @@ def permute(block: int, table: list[int], block_size: int) -> int:
 
 
 def kdf(key: int) -> list[int]:
-    print(f"initial key: {phex(key)} ({pbin(key)})")
+    log(f"initial key: {phex(key)} ({pbin(key)})")
 
     permuted_key = permute(key, PC_1, 64) & 0xFFFFFFFFFFFFFF
-    print(f"after key ip: {phex(permuted_key, 14)} ({pbin(permuted_key, 56)})")
+    log(f"after key ip: {phex(permuted_key, 14)} ({pbin(permuted_key, 56)})")
 
-    print()
+    log()
 
     c0 = permuted_key >> 28 & 0xFFFFFFF
     d0 = permuted_key & 0xFFFFFFF
 
-    print(f"C0: {phex(c0, 7)} ({pbin(c0, 28)})")
-    print(f"D0: {phex(d0, 7)} ({pbin(d0, 28)})")
+    log(f"C0: {phex(c0, 7)} ({pbin(c0, 28)})")
+    log(f"D0: {phex(d0, 7)} ({pbin(d0, 28)})")
 
-    print()
+    log()
 
     lc = c0
     ld = d0
@@ -172,47 +178,47 @@ def kdf(key: int) -> list[int]:
             d_leftmost_bit = (dn >> 27) & 1
             dn = ((dn << 1) & 0xFFFFFFF) | d_leftmost_bit
 
-        print(f"C{n + 1}: {phex(cn, 7)} ({pbin(cn, 28)})")
-        print(f"D{n + 1}: {phex(dn, 7)} ({pbin(dn, 28)})")
+        log(f"C{n + 1}: {phex(cn, 7)} ({pbin(cn, 28)})")
+        log(f"D{n + 1}: {phex(dn, 7)} ({pbin(dn, 28)})")
 
         cd = (cn << 28) | dn
-        print(f"CD{n + 1}: {phex(cd, 14)} ({pbin(cd, 56)})")
+        log(f"CD{n + 1}: {phex(cd, 14)} ({pbin(cd, 56)})")
 
         kn = permute(cd, PC_2, 56)
-        print(f"K{n + 1}: {phex(kn, 12)} ({pbin(kn, 48)})")
+        log(f"K{n + 1}: {phex(kn, 12)} ({pbin(kn, 48)})")
 
         keys.append(kn)
 
         lc = cn
         ld = dn
 
-        print()
+        log()
 
     return keys
 
 
 def f(block: int, key: int) -> int:
     block_ex = permute(block, E, 32)
-    print(f"E(Rn): {phex(block_ex, 12)} ({pbin(block_ex, 48)})")
+    log(f"E(Rn): {phex(block_ex, 12)} ({pbin(block_ex, 48)})")
 
     xorred = (block_ex ^ key) & 0xFFFFFFFFFFFF
-    print(f"E(Rn) ^ Kn: {phex(xorred, 12)} ({pbin(xorred, 48)})")
+    log(f"E(Rn) ^ Kn: {phex(xorred, 12)} ({pbin(xorred, 48)})")
 
     result = 0
     for n in range(8):
         b = (xorred >> ((8 - n - 1) * 6)) & 0b111111
-        print(f"B{n + 1}: {pbin(b, 6)}")
+        log(f"B{n + 1}: {pbin(b, 6)}")
         row = (((b >> 5) & 1) << 1) | (b & 1)
         col = (b >> 1) & 0b1111
 
         s_num = SBOX[n][row][col]
-        print(f"S{n + 1}: {pbin(s_num, 4)}")
+        log(f"S{n + 1}: {pbin(s_num, 4)}")
 
         result <<= 4
         result |= s_num
 
-    print(f"S...: {phex(result, 8)} ({pbin(result, 32)})")
-    print()
+    log(f"S...: {phex(result, 8)} ({pbin(result, 32)})")
+    log()
 
     return permute(result, SBOX_P, 32) & 0xFFFFFFFF
 
@@ -232,20 +238,20 @@ def sixteen_rounds(l0: int, r0: int, keys: list[int]) -> int:
 
 
 def process_block(block: int, key: int, decrypt: bool) -> int:
-    print(f"initial data: {phex(block)} ({pbin(block)})")
+    log(f"initial data: {phex(block)} ({pbin(block)})")
 
     permuted = permute(block, IP, 64)
-    print(f"after data ip: {phex(permuted)} ({pbin(permuted)})")
+    log(f"after data ip: {phex(permuted)} ({pbin(permuted)})")
 
-    print()
+    log()
 
     l0 = permuted >> 32 & 0xFFFFFFFF
     r0 = permuted & 0xFFFFFFFF
 
-    print(f"L0: {phex(l0, 8)} ({pbin(l0, 32)})")
-    print(f"R0: {phex(r0, 8)} ({pbin(r0, 32)})")
+    log(f"L0: {phex(l0, 8)} ({pbin(l0, 32)})")
+    log(f"R0: {phex(r0, 8)} ({pbin(r0, 32)})")
 
-    print()
+    log()
 
     keys = kdf(key)
     if decrypt:
@@ -254,7 +260,7 @@ def process_block(block: int, key: int, decrypt: bool) -> int:
     rl = sixteen_rounds(l0, r0, keys)
 
     final = permute(rl, FP, 64)
-    print(f"final: {phex(final)} ({pbin(final)})")
+    log(f"final: {phex(final)} ({pbin(final)})")
 
     return final
 
@@ -267,18 +273,75 @@ def decrypt_block(data: int, key: int) -> int:
     return process_block(data, key, True)
 
 
-def main() -> None:
+def pad(data: bytes, to_size: int) -> bytes:
+    if len(data) % to_size == 0:
+        return data
+
+    add_padding = (-len(data) % to_size)
+    return data + bytes([add_padding]) * add_padding
+
+
+def unpad(data: bytes, max_size: int) -> bytes:
+    if not data:
+        return data
+
+    last = data[-1]
+    if last >= max_size:
+        return data
+
+    if data[-last:] == bytes([last]) * last:
+        return data[:-last]
+
+    return data
+
+
+def ecb_encrypt(data: bytes, key: int) -> bytes:
+    result = b""
+
+    for blocknum in range((len(data) + 7) // 8):
+        block_bytes = data[blocknum * 8:(blocknum + 1) * 8]
+        block_bytes = pad(block_bytes, 8)
+
+        block = int.from_bytes(block_bytes, "big", signed=False)
+        encrypted = encrypt_block(block, key)
+        result += encrypted.to_bytes(8, "big", signed=False)
+
+    return result
+
+
+def ecb_decrypt(data: bytes, key: int) -> bytes:
+    result = b""
+
+    for blocknum in range((len(data) + 7) // 8):
+        block_bytes = data[blocknum * 8:(blocknum + 1) * 8]
+        block = int.from_bytes(block_bytes, "big", signed=False)
+        decrypted = decrypt_block(block, key)
+        decrypted_bytes = decrypted.to_bytes(8, "big", signed=False)
+        result += unpad(decrypted_bytes, 8)
+
+    return result
+
+
+def main_block() -> None:
     key = 0x133457799BBCDFF1
     data = 0x0123456789ABCDEF
 
     encrypted = encrypt_block(data, key)
     print(f"encrypted: {phex(encrypted)} ({pbin(encrypted)})")
-    print()
 
     decrypted = decrypt_block(encrypted, key)
     print(f"decrypted: {phex(decrypted)} ({pbin(decrypted)})")
-    print()
 
+
+def main() -> None:
+    key = 0x133457799BBCDFF1
+    data = b"test message"
+
+    encrypted = ecb_encrypt(data, key)
+    print(f"encrypted: {encrypted.hex()}")
+
+    decrypted = ecb_decrypt(encrypted, key)
+    print(f"decrypted: {decrypted}")
 
 
 if __name__ == "__main__":
