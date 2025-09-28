@@ -128,12 +128,12 @@ def log(s: str | None = None) -> None:
     if VERBOSE:
         print(s)
 
-def pbin(num: int, pad: int = 64) -> str:
-    return bin(num)[2:].zfill(pad)
+def pbin(num: int, padding: int = 64) -> str:
+    return bin(num)[2:].zfill(padding)
 
 
-def phex(num: int, pad: int = 16) -> str:
-    return hex(num)[2:].zfill(pad)
+def phex(num: int, padding: int = 16) -> str:
+    return hex(num)[2:].zfill(padding)
 
 
 def permute(block: int, table: list[int], block_size: int) -> int:
@@ -333,6 +333,7 @@ def main_block() -> None:
     print(f"decrypted: {phex(decrypted)} ({pbin(decrypted)})")
 
 
+# https://emn178.github.io/online-tools/des/decrypt/
 def main() -> None:
     key = 0x133457799BBCDFF1
     data = b"test message"
