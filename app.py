@@ -22,7 +22,14 @@ def encrypt_text() -> ...:
     data_to_encrypt = request.form["data"].encode("utf8")
     encrypted = des.ecb_encrypt(data_to_encrypt, key)
 
-    return render_template("index.jinja2", encrypted_data=encrypted.hex())
+    return render_template(
+        "index.jinja2",
+        encrypted_data=encrypted.hex(),
+        is_key_weak=des.is_key_weak(key),
+        plaintext_entropy=des.calc_entropy(data_to_encrypt),
+        key_entropy=des.calc_entropy(key.to_bytes(8, "big", signed=False)),
+        encrypted_entropy=des.calc_entropy(encrypted),
+    )
 
 
 @app.post("/decrypt")
@@ -38,7 +45,14 @@ def decrypt_text() -> ...:
     data_to_decrypt = bytes.fromhex(request.form["data"])
     decrypted = des.ecb_decrypt(data_to_decrypt, key)
 
-    return render_template("index.jinja2", decrypted_data=decrypted.decode("utf8"))
+    return render_template(
+        "index.jinja2",
+        decrypted_data=decrypted.decode("utf8"),
+        is_key_weak=des.is_key_weak(key),
+        plaintext_entropy=des.calc_entropy(decrypted),
+        key_entropy=des.calc_entropy(key.to_bytes(8, "big", signed=False)),
+        encrypted_entropy=des.calc_entropy(data_to_decrypt),
+    )
 
 
 if __name__ == "__main__":

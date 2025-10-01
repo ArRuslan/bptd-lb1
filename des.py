@@ -1,4 +1,5 @@
 # https://page.math.tu-berlin.de/~kant/teaching/hess/krypto-ws2006/des.htm
+import math
 
 VERBOSE = False
 
@@ -343,6 +344,20 @@ def main() -> None:
 
     decrypted = ecb_decrypt(encrypted, key)
     print(f"decrypted: {decrypted}")
+
+
+def calc_entropy(data: bytes) -> float:
+    counters = [0 for _ in range(2 ** 8)]
+    for byte in data:
+        counters[byte] += 1
+
+    probabilities = [counter / len(data) for counter in counters]
+    return -sum(probability * math.log2(probability) for probability in probabilities if probability > 0)
+
+
+def is_key_weak(key: int) -> bool:
+    keys = kdf(key)
+    return all(subkey == keys[0] for subkey in keys[1:])
 
 
 if __name__ == "__main__":

@@ -31,12 +31,36 @@
         <label for="decryption-key" class="form-label">Key (hex)</label>
         <input required type="text" name="key" minlength="16" maxlength="16" pattern="[A-Za-z0-9]{16}" placeholder="Key (hex)" id="decryption-key" class="form-control"/>
 
-        <label for="decrypt-data" class="form-label">Text to encrypt</label>
+        <label for="decrypt-data" class="form-label">Text to decrypt</label>
         <textarea required name="data" id="decrypt-data" class="form-control" rows="10">{% if encrypted_data is defined %}{{ encrypted_data }}{% endif %}</textarea>
 
         <button type="submit" class="btn btn-primary">Decrypt</button>
     </form>
 </div>
+
+{% if is_key_weak is defined and is_key_weak %}
+<h3 class="w-100 px-3 m-0 text-center" style="color: red;">
+    !!! KEY IS WEAK !!!
+</h3>
+{% endif %}
+
+{% if plaintext_entropy is defined %}
+<p class="w-100 px-3 m-0">
+    Plaintext entropy btw: {{ plaintext_entropy }}
+</p>
+{% endif %}
+
+{% if key_entropy is defined %}
+<p class="w-100 px-3 m-0">
+    Key entropy btw: {{ key_entropy }}
+</p>
+{% endif %}
+
+{% if encrypted_entropy is defined %}
+<p class="w-100 px-3 m-0">
+    Encrypted entropy btw: {{ encrypted_entropy }}
+</p>
+{% endif %}
 
 </body>
 </html>
