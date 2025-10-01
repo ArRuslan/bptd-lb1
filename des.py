@@ -357,7 +357,12 @@ def calc_entropy(data: bytes) -> float:
 
 def is_key_weak(key: int) -> bool:
     keys = kdf(key)
-    return all(subkey == keys[0] for subkey in keys[1:])
+    return len(set(keys)) == 1
+
+
+def is_key_semi_weak(key: int) -> bool:
+    keys = kdf(key)
+    return len(set(keys)) == 2
 
 
 if __name__ == "__main__":

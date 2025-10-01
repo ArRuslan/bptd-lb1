@@ -39,8 +39,14 @@
 </div>
 
 {% if is_key_weak is defined and is_key_weak %}
-<h3 class="w-100 px-3 m-0 text-center" style="color: red;">
+<h3 class="w-100 px-3 m-0 text-center fw-bold" style="color: red;">
     !!! KEY IS WEAK !!!
+</h3>
+{% endif %}
+
+{% if is_key_semi_weak is defined and is_key_semi_weak %}
+<h3 class="w-100 px-3 m-0 text-center text-bold fw-semibold" style="color: darkorange;">
+    !!! KEY IS SEMI WEAK !!!
 </h3>
 {% endif %}
 
